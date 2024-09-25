@@ -1,0 +1,10 @@
+pandas
+numpy
+networkx
+matplotlib
+music21
+pygame
+mingus
+plotly
+streamlit
+streamlit-cytoscapejs
