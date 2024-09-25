@@ -154,6 +154,7 @@ for i in range(len(chord_names)):
 clicked_node = st.session_state.highlighted_chord if st.session_state.highlighted_chord else chord_names[0]
 
 steps = st.number_input("How many steps should the Markov chain simulate?", min_value=1, value=10, step=1)
+plotly_chart_placeholder = st.empty()
 
 if st.button("Start Markov Chain"):
     index = chord_names.index(clicked_node)
