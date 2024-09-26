@@ -6,10 +6,11 @@ import time
 import plotly.graph_objects as go
 import audio
 from mingus.core import chords
-st.set_page_config(page_title="Markov Chord Progression Generator", page_icon="🎶")
+import base64
+import os
 
 st.title("Markov Chord Progression Simulator")
-st.markdown("""
+st.markdown(""" 
     ### Instructions:
     - **Option 1:** Press the button below to generate a default chord progression.
     - **Option 2:** Enter your own custom chord progression (separate chords by spaces, e.g., `G Cm Gm9/E Eb7`).
@@ -34,7 +35,6 @@ chords_text = st.text_input("Enter your custom chord progression:", st.session_s
 if chords_text != st.session_state.chords_text:
     st.session_state.chords_text = chords_text
 
-# Check if chords_text is empty after updates
 if not st.session_state.chords_text:
     st.info("Please either select the JPop button or enter your own chord progression.")
     st.stop()
@@ -80,7 +80,6 @@ for (source, target), weight in frequences.items():
     target_index = chord_names.index(target)
     G.add_edge(source, target, weight=round(transition_matrix[source_index][target_index], 2))
 
-# Generate positions using circular layout
 pos = nx.circular_layout(G)
 
 default_node_color = '#0074D9'
@@ -130,6 +129,8 @@ def create_plotly_graph(highlight_node=None):
 
     return edge_trace, edge_label_trace, node_trace
 
+plotly_chart_placeholder = st.empty()
+
 edge_trace, edge_label_trace, node_trace = create_plotly_graph(None)
 
 if chords_list: 
@@ -143,6 +144,7 @@ if chords_list:
 
 if 'highlighted_chord' not in st.session_state:
     st.session_state.highlighted_chord = None
+
 st.info("Click on a starting chord for the Markov chain simulation")
 
 columns = st.columns(len(chord_names))
@@ -154,7 +156,12 @@ for i in range(len(chord_names)):
 clicked_node = st.session_state.highlighted_chord if st.session_state.highlighted_chord else chord_names[0]
 
 steps = st.number_input("How many steps should the Markov chain simulate?", min_value=1, value=10, step=1)
-plotly_chart_placeholder = st.empty()
+
+def get_base64_audio(mp3_file_path):
+    """Converts audio file to base64 string for streaming."""
+    with open(mp3_file_path, "rb") as audio_file:
+        encoded_string = base64.b64encode(audio_file.read()).decode()
+    return f"data:audio/mp3;base64,{encoded_string}"
 
 if st.button("Start Markov Chain"):
     index = chord_names.index(clicked_node)
@@ -170,18 +177,30 @@ if st.button("Start Markov Chain"):
 
             highlight_node = st.session_state.highlighted_chord
             edge_trace, edge_label_trace, node_trace = create_plotly_graph(highlight_node)
-            fig = go.Figure(data=[edge_trace, edge_label_trace, node_trace],
-                            layout=go.Layout(
-                                showlegend=False,
-                                xaxis=dict(showgrid=False, zeroline=False),
-                                yaxis=dict(showgrid=False, zeroline=False),
-                                title="Chord Transition Network"
-                            ))
 
-            plotly_chart_placeholder.plotly_chart(fig, use_container_width=True)
-            
-            audio.play_chord(chord)  
-            
+            plotly_chart_placeholder.plotly_chart(
+                go.Figure(data=[edge_trace, edge_label_trace, node_trace],
+                           layout=go.Layout(
+                               showlegend=False,
+                               xaxis=dict(showgrid=False, zeroline=False),
+                               yaxis=dict(showgrid=False, zeroline=False),
+                               title="Chord Transition Network"
+                           )),
+                use_container_width=True
+            )
+
+            audio.play_chord(chord)
+
+            mp3_file_path = f"{chord}.mp3"
+            print("Waiting for audio file to be created...")
+            while not os.path.exists(mp3_file_path):
+                time.sleep(0.1) 
+
+            audio_base64 = get_base64_audio(mp3_file_path)
+
+            st.markdown(f'<audio controls autoplay><source src="{audio_base64}" type="audio/mp3"></audio>', unsafe_allow_html=True)
+            time.sleep(2)  
+
             col = [idx for idx in range(len(transition_matrix))]
             row_prob = [p for p in transition_matrix[:, index]]
             index = np.random.choice(col, 1, p=row_prob)[0]
@@ -190,6 +209,5 @@ if st.button("Start Markov Chain"):
     st.write("Generated Chord Sequence:")
     st.write(markov_simulator(index))
 
-plotly_chart_placeholder = st.empty()
-
-plotly_chart_placeholder.plotly_chart(fig, use_container_width=True)
+if 'highlighted_chord' in st.session_state:
+    plotly_chart_placeholder.plotly_chart(fig, use_container_width=True)
