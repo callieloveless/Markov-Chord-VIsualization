@@ -8,4 +8,5 @@ mingus
 plotly
 streamlit
 streamlit-cytoscapejs
+soundfile
 pydub
