@@ -19,7 +19,7 @@ st.markdown("""
 if 'chords_text' not in st.session_state:
     st.session_state.chords_text = ""
 
-Jpop = st.button("Generate default Chord Progression", key="Jpop")
+Jpop = st.button("Generate default JPop Chord Progression", key="Jpop")
 
 if Jpop:
     st.session_state.chords_text = """F7 G Em9 Am
@@ -157,6 +157,7 @@ clicked_node = st.session_state.highlighted_chord if st.session_state.highlighte
 
 steps = st.number_input("How many steps should the Markov chain simulate?", min_value=1, value=10, step=1)
 
+# conversion to base64 is needed to have the mp3s autoplay  
 def get_base64_audio(mp3_file_path):
     """Converts audio file to base64 string for streaming."""
     with open(mp3_file_path, "rb") as audio_file:
@@ -167,6 +168,8 @@ if st.button("Start Markov Chain"):
     index = chord_names.index(clicked_node)
 
     def markov_simulator(index):
+        """Simulates the markov chain by playing audio 
+        and updating the graph at each step"""
         sequence = [clicked_node]
         for i in range(steps):
             chord = chord_names[index]
@@ -190,8 +193,8 @@ if st.button("Start Markov Chain"):
             )
 
             audio.play_chord(chord)
-
-            mp3_file_path = f"{chord}.mp3"
+            sanitized_chord_name = chord.replace('/', 'slash')
+            mp3_file_path = f"{sanitized_chord_name}.mp3"
             print("Waiting for audio file to be created...")
             while not os.path.exists(mp3_file_path):
                 time.sleep(0.1) 
@@ -199,7 +202,7 @@ if st.button("Start Markov Chain"):
             audio_base64 = get_base64_audio(mp3_file_path)
 
             st.markdown(f'<audio controls autoplay><source src="{audio_base64}" type="audio/mp3"></audio>', unsafe_allow_html=True)
-            time.sleep(2)  
+            time.sleep(2.5)  
 
             col = [idx for idx in range(len(transition_matrix))]
             row_prob = [p for p in transition_matrix[:, index]]

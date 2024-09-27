@@ -15,12 +15,10 @@ SHARP_TO_FLAT = {
 }
 
 def convert_sharps_to_flats(note):
-    """Convert a note with sharps or flats to its enharmonic flat equivalent, preserving the octave."""
     match = re.match(r'([A-G][#]{1,2}|[A-G][b]{1,2})(\d+)', note)
     if match:
         base_note = match.group(1)
         octave = match.group(2)
-        # Convert the base note from sharp to flat if necessary
         flat_note = SHARP_TO_FLAT.get(base_note, base_note)
         return f"{flat_note}{octave}"
     return note
@@ -52,32 +50,28 @@ def overlay_chords(chord_list, chord_name):
                 overlay_data = data
                 samplerate = sr
             else:
-                # Ensure both audio files have the same sample rate
                 if sr != samplerate:
                     raise ValueError("Sample rates do not match!")
 
-                # Pad the shorter audio if needed
                 min_length = min(len(overlay_data), len(data))
                 
-                # Sum the audio data
                 overlay_data = overlay_data[:min_length] + data[:min_length]
 
         except Exception as e:
             print(f"Error loading {mp3_file_path}: {e}")
 
     if overlay_data is not None:
-        # Normalize the output data to prevent distortion
-        overlay_data = overlay_data / np.max(np.abs(overlay_data))  # Normalize to [-1, 1]
-
-        # Save the overlay audio to a new file named after the chord
-        output_file = f"{chord_name}.mp3"
+        overlay_data = overlay_data / np.max(np.abs(overlay_data)) 
+        sanitized_chord_name = chord_name.replace("/", "slash") #having / in the filename causes errors when searching for the mp3 path later
+        output_file = f"{sanitized_chord_name}.mp3"
         sf.write(output_file, overlay_data, samplerate)
         print(f"Overlay saved as {output_file}")
 
 def play_chord(chord_symbol):
     chord_list = chords.from_shorthand(chord_symbol)
-    new_list = append_octave_to_notes(chord_list, 4)  # Assuming octave 4 for this example
-    overlay_chords(new_list, chord_symbol)  # Pass the chord symbol as the filename
+    print(f"Chord list is {chord_list}")
+    new_list = append_octave_to_notes(chord_list, 4)  
+    overlay_chords(new_list, chord_symbol)  
 
 if __name__ == '__main__':
     play_chord("D/G")
